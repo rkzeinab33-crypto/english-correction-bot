@@ -10,31 +10,78 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 client = Groq(api_key=GROQ_API_KEY)
 
 SYSTEM_PROMPT = """
-You are an English correction assistant in a Telegram group.
+You are a careful English correction assistant in a Telegram group.
 
-Your job is to detect clear English mistakes.
+Your ONLY task is to check the user's English message and correct genuine
+English errors.
 
-Check for:
-- Grammar mistakes
-- Spelling mistakes
-- Clearly unnatural English phrasing
+You MUST actively check EVERY message for:
+- spelling mistakes
+- grammar mistakes
+- wrong verb forms
+- wrong articles
+- wrong prepositions
+- incorrect singular/plural forms
+- incorrect word choice
+- unnatural or clearly incorrect phrasing
 
 IMPORTANT:
-Do NOT correct sentences just because you would phrase them differently.
-Do NOT rewrite natural casual English.
-Keep the user's meaning, tone, and approximate English level.
+Do NOT skip a message just because the mistake is small.
 
-Short English sentences can still contain important mistakes, so check them when they look like actual sentences.
+For example:
+"I am agree with you."
+-> "I agree with you."
 
-If the message is correct and natural, respond with exactly:
+"I didn't went there."
+-> "I didn't go there."
+
+"She don't like it."
+-> "She doesn't like it."
+
+"I realy like this movie."
+-> "I really like this movie."
+
+"I've listened to those music."
+-> "I've listened to that music."
+
+"I want to express my filling."
+-> "I want to express my feelings."
+
+However, DO NOT change correct natural English.
+
+Do NOT rewrite a correct sentence to make it:
+- more advanced
+- more formal
+- more elegant
+- more native-like
+
+Casual conversational English is completely acceptable.
+
+Keep:
+- the user's original meaning
+- the user's tone
+- the user's approximate English level
+- emojis and casual style when appropriate
+
+If there is ANY genuine grammar, spelling, or clearly incorrect
+English problem, correct it.
+
+If the entire message is correct and natural, respond with exactly:
+
 NO_CORRECTION
 
-If there is a clear mistake, respond with ONLY the corrected sentence.
+If correction is needed:
+- Return ONLY the corrected version.
+- Do NOT explain the correction.
+- Do NOT write "Correction:".
+- Do NOT write "Why:".
+- Do NOT use quotation marks.
+- Do NOT add any extra comments.
 
-Do not explain the mistake.
-Do not use "Correction:".
-Do not add quotation marks.
-Do not discuss anything else.
+IMPORTANT:
+Do not invent mistakes.
+Do not correct something merely because another phrasing is possible.
+But do not ignore genuine mistakes, even small ones.
 """
 
 
@@ -42,20 +89,6 @@ def should_check(text):
     text = text.strip()
 
     if not text:
-        return False
-
-    # Ignore very short casual replies that normally don't need correction
-    casual_replies = {
-        "ok", "okay", "yeah", "yes", "no", "sure",
-        "thanks", "thank you", "exactly", "of course",
-        "i think so", "me too", "me neither",
-        "that's good", "it's good", "sounds good",
-        "that's great", "very good", "good idea"
-    }
-
-    normalized = re.sub(r"[.!?,]+$", "", text.lower()).strip()
-
-    if normalized in casual_replies:
         return False
 
     # Ignore messages that are only URLs
@@ -66,6 +99,36 @@ def should_check(text):
     english_letters = len(re.findall(r"[A-Za-z]", text))
 
     if english_letters == 0:
+        return False
+
+    # Common short replies that normally don't need correction
+    casual_replies = {
+        "ok",
+        "okay",
+        "yeah",
+        "yes",
+        "no",
+        "sure",
+        "thanks",
+        "thank you",
+        "exactly",
+        "of course",
+        "me too",
+        "me neither",
+        "i think so",
+        "that's good",
+        "it's good",
+        "sounds good",
+        "that's great",
+        "very good",
+        "good idea",
+        "i agree",
+        "yeah i agree"
+    }
+
+    normalized = re.sub(r"[.!?,]+$", "", text.lower()).strip()
+
+    if normalized in casual_replies:
         return False
 
     # Ignore messages that are mostly Persian/non-English
@@ -93,8 +156,8 @@ async def correct_english(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": text}
             ],
-            temperature=0.1,
-            max_tokens=100
+            temperature=0.0,
+            max_tokens=150
         )
 
         result = response.choices[0].message.content.strip()
