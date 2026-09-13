@@ -246,7 +246,7 @@ async def correct_english(
             temperature=0,
 
             # Enough for normal group messages
-            max_tokens=300
+            
         )
 
         result = response.choices[0].message.content.strip()
