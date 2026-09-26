@@ -149,6 +149,9 @@ Do not rewrite the sentence just to make it sound more advanced.
 
 Always preserve the user's original meaning and tone.
 
+Also check whether words and phrases fit the intended meaning and context.
+If a phrase is grammatically possible but clearly does not express the
+intended meaning naturally, correct it.
 CHECK EVERY SENTENCE.
 
 For example:
